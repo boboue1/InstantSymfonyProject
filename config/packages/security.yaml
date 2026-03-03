@@ -1,0 +1,43 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    #Configuration du provider pour charger les utilisateurs à partir de la base de données
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\User #la classe de l'entité User
+                property: email #Le champ utilisé pour identifier l'utilisateur (email dans ce cas)
+
+    #Configuration des firewalls pour sécuriser les routes de l'API
+    firewalls:
+        #Firewall pour la route de login, qui permet aux utilisateurs de se connecter et d'obtenir un token JWT
+        login:
+            pattern: ^/api/login
+            stateless: true
+            json_login:
+                check_path: /api/login #Point d'entrée pour le processus de connexion
+                username_path: email #Champs dans la requête JSON pour l'email
+                password_path: password #Champs dans la requête JSON pour le mot de passe
+
+        #Firewall pour les routes de l'API, qui nécessitent une authentification via JWT
+        api:
+            pattern: ^/api
+            stateless: true #Pas de session, l'authentification se fait via le token JWT
+            jwt: ~ #Utilisation du système d'authentification JWT fourni par LexikJWTAuthenticationBundle
+        
+        #Firewall pour la route de logout, qui permet aux utilisateurs de se déconnecter en invalidant leur token JWT
+        logout:
+            pattern: ^/api/logout
+            stateless: true            
+
+    #Définition des règles d'accès pour les différentes routes de l'API
+    access_control:
+            #Autorisation d'accès anonyme pour la route de login, permettant aux utilisateurs de se connecter sans être authentifiés
+        - { path: ^/api/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+
+        #Restriction d'accès aux routes commençant par /admin aux utilisateurs ayant le rôle ROLE_ADMIN, assurant que seules les personnes autorisées peuvent accéder à ces ressources sensibles
+        - { path: ^/admin, roles: ROLE_ADMIN }
+
+        #Autorisation d'accès complet pour les routes de l'API, nécessitant que les utilisateurs soient pleinement authentifiés via JWT pour accéder à ces ressources protégées
+        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
